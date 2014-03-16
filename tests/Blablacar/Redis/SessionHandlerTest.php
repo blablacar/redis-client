@@ -2,7 +2,6 @@
 
 namespace Blablacar\Redis;
 
-use Blablacar\Redis\SessionHandler;
 use Prophecy\Argument;
 
 class SessionHandlerTest extends \PHPUnit_Framework_TestCase

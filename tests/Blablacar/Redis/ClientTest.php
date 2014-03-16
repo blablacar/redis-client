@@ -2,8 +2,6 @@
 
 namespace Blablacar\Redis;
 
-use Blablacar\Redis\Client;
-
 class ClientTest extends \PHPUnit_Framework_TestCase
 {
     public function test_it_is_initializable()
