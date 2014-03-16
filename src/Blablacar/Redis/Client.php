@@ -14,8 +14,8 @@ class Client
      * __construct
      *
      * @param string $host
-     * @param int $port
-     * @param int $base
+     * @param int    $port
+     * @param int    $base
      *
      * @return void
      */
