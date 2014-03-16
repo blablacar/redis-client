@@ -60,6 +60,14 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
             return true;
         })->shouldBeCalledTimes(1);
+        $client->setnx(
+            Argument::type('string'),
+            Argument::exact(null)
+        )->willReturn(true);
+        $client->expire(
+            Argument::type('string'),
+            Argument::exact(30000001)
+        )->willReturn(true);
 
         $handler = new SessionHandler($client->reveal(), 'session', 1200);
 
@@ -78,10 +86,55 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
             return true;
         })->shouldBeCalledTimes(1);
+        $client->setnx(
+            Argument::type('string'),
+            Argument::exact(null)
+        )->willReturn(true);
+        $client->expire(
+            Argument::type('string'),
+            Argument::exact(30000001)
+        )->willReturn(true);
 
         $handler = new SessionHandler($client->reveal());
 
         $this->assertTrue($handler->write('key', 'value'));
         $this->assertEquals('value', $handler->read('key'));
+    }
+
+    public function test_write_when_session_is_locked()
+    {
+        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client->setex(
+            Argument::type('string'),
+            Argument::exact(3600),
+            Argument::type('string')
+        )->will(function ($args) {
+            $this->get($args[0])->willReturn($args[2])->shouldBeCalledTimes(1);
+
+            return true;
+        })->shouldBeCalledTimes(1);
+        $client->setnx(
+            Argument::type('string'),
+            Argument::exact(null)
+        )->will(function () {
+            $this->setnx(
+                Argument::type('string'),
+                Argument::exact(null)
+            )->willReturn(false);
+
+            return true;
+        })->shouldBeCalledTimes(4);
+        $client->expire(
+            Argument::type('string'),
+            Argument::exact(450001)
+        )->willReturn(true);
+
+        $handler = new SessionHandler($client->reveal(), 'session', 3600, 150000, 450000);
+
+        $this->assertTrue($handler->write('key', 'value'));
+        $this->assertEquals('value', $handler->read('key'));
+
+        $this->setExpectedException('Blablacar\Redis\Exception\LockException');
+        $handler->write('key', 'value2');
     }
 }

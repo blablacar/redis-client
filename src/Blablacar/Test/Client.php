@@ -20,4 +20,14 @@ class Client extends BaseClient
     {
         return $this->__call('setex', func_get_args());
     }
+
+    public function setnx()
+    {
+        return $this->__call('setnx', func_get_args());
+    }
+
+    public function expire()
+    {
+        return $this->__call('expire', func_get_args());
+    }
 }

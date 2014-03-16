@@ -2,33 +2,34 @@
 
 namespace Blablacar\Redis;
 
+use Blablacar\Redis\Exception\LockException;
+
 class SessionHandler implements \SessionHandlerInterface
 {
     protected $client;
     protected $prefix;
     protected $ttl;
-
-    public function __construct(Client $client, $prefix = 'session', $ttl = null)
-    {
-        $this->client = $client;
-        $this->prefix = $prefix;
-        $this->ttl    = $ttl;
-    }
+    protected $spinLockWait;
+    protected $lockMaxWait;
 
     /**
-     * {@inheritDoc}
+     * __construct
+     *
+     * @param Client $client       A redis client
+     * @param string $prefix       The prefix to use for keys (default: "session")
+     * @param int    $ttl          A ttl for keys (default: null = no ttl)
+     * @param int    $spinLockWait The time to wait in ms before lock try
+     * @param int    $lockMaxWait  The maximum time to wait before exiting if no lock
+     *
+     * @return void
      */
-    public function open($savePath, $sessionName)
+    public function __construct(Client $client, $prefix = 'session', $ttl = null, $spinLockWait = 150000, $lockMaxWait = 30000000)
     {
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function close()
-    {
-        return true;
+        $this->client       = $client;
+        $this->prefix       = $prefix;
+        $this->ttl          = $ttl;
+        $this->spinLockWait = $spinLockWait;
+        $this->lockMaxWait  = $lockMaxWait;
     }
 
     /**
@@ -50,6 +51,8 @@ class SessionHandler implements \SessionHandlerInterface
      */
     public function write($sessionId, $data)
     {
+        $this->lock($sessionId);
+
         if (null === $this->ttl) {
             return $this->client->set(
                 $this->getSessionKey($sessionId),
@@ -69,7 +72,10 @@ class SessionHandler implements \SessionHandlerInterface
      */
     public function destroy($sessionId)
     {
-        return 0 < $this->client->del($this->getSessionKey($sessionId));
+        $this->client->del($this->getSessionKey($sessionId));
+        $this->unlock($sessionId);
+
+        return true;
     }
 
     /**
@@ -78,6 +84,57 @@ class SessionHandler implements \SessionHandlerInterface
     public function gc($lifetime)
     {
         return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function open($savePath, $sessionName)
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function close()
+    {
+        return true;
+    }
+
+    /**
+     * lock
+     *
+     * @param string $sessionId
+     *
+     * @return boolean
+     */
+    protected function lock($sessionId)
+    {
+        $attempts = $this->lockMaxWait / $this->spinLockWait;
+        $lockKey = $this->getSessionLockKey($sessionId);
+        for ($i = 0; $i < $attempts; $i++) {
+            if ($this->client->setnx($lockKey, null)) {
+                $this->client->expire($lockKey, $this->lockMaxWait + 1);
+
+                return true;
+            }
+            usleep($attempts);
+        }
+
+        throw new LockException();
+    }
+
+    /**
+     * unlock
+     *
+     * @param string $sessionId
+     *
+     * @return void
+     */
+    protected function unlock($sessionId)
+    {
+        $this->client->del($this->getSessionLockKey($sessionId));
     }
 
     /**
@@ -90,5 +147,17 @@ class SessionHandler implements \SessionHandlerInterface
     private function getSessionKey($sessionId)
     {
         return sprintf('%s:%s', $this->prefix, $sessionId);
+    }
+
+    /**
+     * getSessionLockKey
+     *
+     * @param string $sessionId
+     *
+     * @return string
+     */
+    protected function getSessionLockKey($sessionId)
+    {
+        return sprintf('%s:%s.lock', $this->prefix, $sessionId);
     }
 }
