@@ -4,30 +4,26 @@ namespace Blablacar\Test;
 
 use Blablacar\Redis\Client as BaseClient;
 
+/**
+ * Client
+ *
+ * The only purpose of this class is to be used to mock the default Client with
+ * prophecy which can mock magic methods like __call
+ */
 class Client extends BaseClient
 {
-    public function get()
-    {
-        return $this->__call('get', func_get_args());
-    }
+    // Keys
+    public function del() {}
+    public function expire() {}
+    public function exists() {}
 
-    public function set()
-    {
-        return $this->__call('set', func_get_args());
-    }
+    // Strings
+    public function get() {}
+    public function set() {}
+    public function setex() {}
+    public function setnx() {}
 
-    public function setex()
-    {
-        return $this->__call('setex', func_get_args());
-    }
-
-    public function setnx()
-    {
-        return $this->__call('setnx', func_get_args());
-    }
-
-    public function expire()
-    {
-        return $this->__call('expire', func_get_args());
-    }
+    // Sets
+    public function sadd() {}
+    public function scard() {}
 }
