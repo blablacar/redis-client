@@ -20,7 +20,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     public function test_it_is_initializable()
     {
-        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
         $this->assertInstanceOf(
             'Blablacar\Redis\SessionHandler',
             new SessionHandler($client->reveal())
@@ -29,7 +29,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     public function test_read_without_key()
     {
-        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
         $client->get(Argument::exact('session:foobar'))->willReturn(false);
 
         $handler = new SessionHandler($client->reveal());
@@ -39,7 +39,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     public function test_read_with_key()
     {
-        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
         $client->get(Argument::exact('session:foobar'))->willReturn('foobar');
 
         $handler = new SessionHandler($client->reveal());
@@ -49,7 +49,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     public function test_write_with_ttl()
     {
-        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
         $client->setex(
             Argument::type('string'),
             Argument::exact(1200),
@@ -76,7 +76,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     public function test_write_without_ttl()
     {
-        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
         $client->set(
             Argument::type('string'),
             Argument::type('string')
@@ -102,7 +102,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     public function test_write_when_session_is_locked()
     {
-        $client = $this->prophet->prophesize('Blablacar\Test\Client');
+        $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
         $client->setex(
             Argument::type('string'),
             Argument::exact(3600),

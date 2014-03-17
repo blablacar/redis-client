@@ -1,6 +1,6 @@
 <?php
 
-namespace Blablacar\Test;
+namespace Blablacar\Redis\Test;
 
 use Blablacar\Redis\Client as BaseClient;
 
