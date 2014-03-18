@@ -54,17 +54,21 @@ class SessionHandler implements \SessionHandlerInterface
         $this->lock($sessionId);
 
         if (null === $this->ttl) {
-            return $this->client->set(
+            $return = $this->client->set(
                 $this->getSessionKey($sessionId),
+                (string) $data
+            );
+        } else {
+            $return = $this->client->setex(
+                $this->getSessionKey($sessionId),
+                $this->ttl,
                 (string) $data
             );
         }
 
-        return $this->client->setex(
-            $this->getSessionKey($sessionId),
-            $this->ttl,
-            (string) $data
-        );
+        $this->unlock($sessionId);
+
+        return $return;
     }
 
     /**
@@ -115,11 +119,11 @@ class SessionHandler implements \SessionHandlerInterface
         $lockKey = $this->getSessionLockKey($sessionId);
         for ($i = 0; $i < $attempts; $i++) {
             if ($this->client->setnx($lockKey, null)) {
-                $this->client->expire($lockKey, $this->lockMaxWait + 1);
+                $this->client->expire($lockKey, $this->lockMaxWait / 1000 + 1);
 
                 return true;
             }
-            usleep($attempts);
+            usleep($this->spinLockWait);
         }
 
         throw new LockException();

@@ -65,8 +65,12 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
         )->willReturn(true);
         $client->expire(
             Argument::type('string'),
-            Argument::exact(30000001)
+            Argument::exact(30001)
         )->willReturn(true);
+        $client->del(
+            Argument::type('string')
+        )->willReturn(true)
+        ->shouldBeCalledTimes(1);
 
         $handler = new SessionHandler($client->reveal(), 'session', 1200);
 
@@ -91,8 +95,12 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
         )->willReturn(true);
         $client->expire(
             Argument::type('string'),
-            Argument::exact(30000001)
+            Argument::exact(30001)
         )->willReturn(true);
+        $client->del(
+            Argument::type('string')
+        )->willReturn(true)
+        ->shouldBeCalledTimes(1);
 
         $handler = new SessionHandler($client->reveal());
 
@@ -125,8 +133,12 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
         })->shouldBeCalledTimes(4);
         $client->expire(
             Argument::type('string'),
-            Argument::exact(450001)
+            Argument::exact(451)
         )->willReturn(true);
+        $client->del(
+            Argument::type('string')
+        )->willReturn(true)
+        ->shouldBeCalledTimes(1);
 
         $handler = new SessionHandler($client->reveal(), 'session', 3600, 150000, 450000);
 
