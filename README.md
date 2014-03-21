@@ -2,11 +2,11 @@
 
 [![Build Status](https://travis-ci.org/blablacar/redis-client.png)](https://travis-ci.org/blablacar/redis-client)
 
-This lib provide a simple Redis connection wrapper.
+This library provides a simple Redis connection wrapper.
 
 ## Installation
 
-The recommended way to install this lib is through
+The recommended way to install this library is through
 [Composer](http://getcomposer.org/). Require the `blablcar/redis-client` package
 into your `composer.json` file:
 
@@ -24,14 +24,14 @@ page to choose a stable version to use, avoid the `@stable` meta constraint.
 
 ## Usage
 
-Create a Client and you're down !
+Create a Client and you're done!
 
 ```php
 $client = new \Blablacar\Redis\Client('127.0.0.1', 6379); // Default values
 $client->set('foobar', 42); // Return 1
 ```
 
-For more informations about Redis extension see the
+For more information about Redis extension see the
 [nicolasff/phpredis](https://github.com/nicolasff/phpredis).
 
 ## License
