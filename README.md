@@ -7,7 +7,7 @@ This library provides a simple Redis connection wrapper.
 ## Installation
 
 The recommended way to install this library is through
-[Composer](http://getcomposer.org/). Require the `blablcar/redis-client` package
+[Composer](http://getcomposer.org/). Require the `blablacar/redis-client` package
 into your `composer.json` file:
 
 ```json
