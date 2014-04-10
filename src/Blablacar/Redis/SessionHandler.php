@@ -37,13 +37,14 @@ class SessionHandler implements \SessionHandlerInterface
      */
     public function read($sessionId)
     {
-        $key = $this->getSessionKey($sessionId);
+        $this->lock($sessionId);
 
-        if (false === $key = $this->client->get($key)) {
-            return null;
+        $key = $this->getSessionKey($sessionId);
+        if (false === $data = $this->client->get($key)) {
+            return '';
         }
 
-        return $key;
+        return $data;
     }
 
     /**
@@ -118,7 +119,7 @@ class SessionHandler implements \SessionHandlerInterface
         $attempts = $this->lockMaxWait / $this->spinLockWait;
         $lockKey = $this->getSessionLockKey($sessionId);
         for ($i = 0; $i < $attempts; $i++) {
-            if ($this->client->setnx($lockKey, null)) {
+            if ($this->client->setnx($lockKey, 1)) {
                 $this->client->expire($lockKey, $this->lockMaxWait / 1000 + 1);
 
                 return true;
@@ -126,7 +127,10 @@ class SessionHandler implements \SessionHandlerInterface
             usleep($this->spinLockWait);
         }
 
-        throw new LockException();
+        throw new LockException(sprintf(
+            "Unable to lock session '%s' (%d attempts, spinLockWait %d µs, total time %d µs)",
+            $lockKey, $i, $this->spinLockWait, $i*$this->spinLockWait
+        ));
     }
 
     /**
