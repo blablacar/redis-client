@@ -22,7 +22,10 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     protected function clientLock(ObjectProphecy $client)
     {
         $client->setnx(Argument::type('string'), Argument::exact(1))->willReturn(true);
+
+
         $client->expire(Argument::type('string'), Argument::exact(30001))->willReturn(true);
+        $client->del(Argument::type('string'))->willReturn(true);
     }
 
     public function test_it_is_initializable()
@@ -106,27 +109,10 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     public function test_write_when_session_is_locked()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
-        $client->setex(
-            Argument::type('string'),
-            Argument::exact(3600),
-            Argument::type('string')
-        )->will(function ($args) {
-            $this->get($args[0])->willReturn($args[2])->shouldBeCalledTimes(1);
-
-            return true;
-        })->shouldBeCalledTimes(1);
         $client->setnx(
-            Argument::exact('session:key1.lock'),
+            Argument::exact('session:lock_fail.lock'),
             Argument::exact(1)
-        )->willReturn(true)->shouldBeCalledTimes(2);
-        $client->setnx(
-            Argument::exact('session:key2.lock'),
-            Argument::exact(1)
-        )->willReturn(false)->shouldBeCalledTimes(3);
-        $client->expire(
-            Argument::type('string'),
-            Argument::exact(451)
-        )->willReturn(true);
+        )->willReturn(false);
         $client->del(
             Argument::type('string')
         )->willReturn(true)
@@ -134,10 +120,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
         $handler = new SessionHandler($client->reveal(), 'session', 3600, 150000, 450000);
 
-        $this->assertTrue($handler->write('key1', 'value'));
-        $this->assertEquals('value', $handler->read('key1'));
-
         $this->setExpectedException('Blablacar\Redis\Exception\LockException');
-        $handler->write('key2', 'value');
+        $handler->write('lock_fail', 'value');
     }
 }
