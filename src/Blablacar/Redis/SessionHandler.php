@@ -11,6 +11,7 @@ class SessionHandler implements \SessionHandlerInterface
     protected $ttl;
     protected $spinLockWait;
     protected $lockMaxWait;
+    protected $lockKey;
 
     /**
      * __construct
@@ -18,8 +19,8 @@ class SessionHandler implements \SessionHandlerInterface
      * @param Client $client       A redis client
      * @param string $prefix       The prefix to use for keys (default: "session")
      * @param int    $ttl          A ttl for keys (default: null = no ttl)
-     * @param int    $spinLockWait The time to wait in ms before lock try
-     * @param int    $lockMaxWait  The maximum time to wait before exiting if no lock
+     * @param int    $spinLockWait The time to wait in µs before lock try
+     * @param int    $lockMaxWait  The maximum time to wait in µs before exiting if no lock
      *
      * @return void
      */
@@ -30,6 +31,16 @@ class SessionHandler implements \SessionHandlerInterface
         $this->ttl          = $ttl;
         $this->spinLockWait = $spinLockWait;
         $this->lockMaxWait  = $lockMaxWait;
+        $this->lockKey      = null;
+        $this->isLocked     = false;
+    }
+
+    /**
+     * Destructor
+     */
+    public function __destruct()
+    {
+        $this->close();
     }
 
     /**
@@ -37,13 +48,14 @@ class SessionHandler implements \SessionHandlerInterface
      */
     public function read($sessionId)
     {
-        $key = $this->getSessionKey($sessionId);
+        $this->lock($sessionId);
 
-        if (false === $key = $this->client->get($key)) {
-            return null;
+        $key = $this->getSessionKey($sessionId);
+        if (false === $data = $this->client->get($key)) {
+            $data = '';
         }
 
-        return $key;
+        return $data;
     }
 
     /**
@@ -66,8 +78,6 @@ class SessionHandler implements \SessionHandlerInterface
             );
         }
 
-        $this->unlock($sessionId);
-
         return $return;
     }
 
@@ -77,7 +87,7 @@ class SessionHandler implements \SessionHandlerInterface
     public function destroy($sessionId)
     {
         $this->client->del($this->getSessionKey($sessionId));
-        $this->unlock($sessionId);
+        $this->close();
 
         return true;
     }
@@ -103,6 +113,8 @@ class SessionHandler implements \SessionHandlerInterface
      */
     public function close()
     {
+        $this->unlock();
+
         return true;
     }
 
@@ -115,30 +127,39 @@ class SessionHandler implements \SessionHandlerInterface
      */
     protected function lock($sessionId)
     {
+        if (true === $this->isLocked) {
+            return true;
+        }
+
         $attempts = $this->lockMaxWait / $this->spinLockWait;
-        $lockKey = $this->getSessionLockKey($sessionId);
+        $this->lockKey = $this->getSessionLockKey($sessionId);
         for ($i = 0; $i < $attempts; $i++) {
-            if ($this->client->setnx($lockKey, null)) {
-                $this->client->expire($lockKey, $this->lockMaxWait / 1000 + 1);
+            if ($this->client->setnx($this->lockKey, 1)) {
+                $this->client->expire($this->lockKey, $this->lockMaxWait / 1000 + 1);
+                $this->isLocked = true;
 
                 return true;
             }
             usleep($this->spinLockWait);
         }
 
-        throw new LockException();
+        throw new LockException(sprintf(
+            "Unable to lock session '%s' (%d attempts, spinLockWait %d µs, total time %d µs)",
+            $this->lockKey, $i, $this->spinLockWait, $i*$this->spinLockWait
+        ));
     }
 
     /**
      * unlock
      *
-     * @param string $sessionId
-     *
      * @return void
      */
-    protected function unlock($sessionId)
+    protected function unlock()
     {
-        $this->client->del($this->getSessionLockKey($sessionId));
+        if (null !== $this->lockKey) {
+            $this->client->del($this->lockKey);
+            $this->lockKey = null;
+        }
     }
 
     /**
@@ -148,7 +169,7 @@ class SessionHandler implements \SessionHandlerInterface
      *
      * @return string
      */
-    private function getSessionKey($sessionId)
+    protected function getSessionKey($sessionId)
     {
         return sprintf('%s:%s', $this->prefix, $sessionId);
     }
@@ -162,6 +183,6 @@ class SessionHandler implements \SessionHandlerInterface
      */
     protected function getSessionLockKey($sessionId)
     {
-        return sprintf('%s:%s.lock', $this->prefix, $sessionId);
+        return sprintf('%s.lock', $this->getSessionKey($sessionId));
     }
 }

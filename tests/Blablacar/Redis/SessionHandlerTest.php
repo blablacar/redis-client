@@ -3,6 +3,7 @@
 namespace Blablacar\Redis;
 
 use Prophecy\Argument;
+use Prophecy\Prophecy\ObjectProphecy;
 
 class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 {
@@ -18,6 +19,13 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
         $this->prophet->checkPredictions();
     }
 
+    protected function clientLock(ObjectProphecy $client)
+    {
+        $client->setnx(Argument::type('string'), Argument::exact(1))->willReturn(true);
+        $client->expire(Argument::type('string'), Argument::exact(30001))->willReturn(true);
+        $client->del(Argument::type('string'))->willReturn(true);
+    }
+
     public function test_it_is_initializable()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
@@ -30,16 +38,18 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     public function test_read_without_key()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
+        $this->clientLock($client);
         $client->get(Argument::exact('session:foobar'))->willReturn(false);
 
         $handler = new SessionHandler($client->reveal());
 
-        $this->assertNull($handler->read('foobar'));
+        $this->assertEquals('', $handler->read('foobar'));
     }
 
     public function test_read_with_key()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
+        $this->clientLock($client);
         $client->get(Argument::exact('session:foobar'))->willReturn('foobar');
 
         $handler = new SessionHandler($client->reveal());
@@ -50,6 +60,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     public function test_write_with_ttl()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
+        $this->clientLock($client);
         $client->setex(
             Argument::type('string'),
             Argument::exact(1200),
@@ -59,14 +70,6 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
             return true;
         })->shouldBeCalledTimes(1);
-        $client->setnx(
-            Argument::type('string'),
-            Argument::exact(null)
-        )->willReturn(true);
-        $client->expire(
-            Argument::type('string'),
-            Argument::exact(30001)
-        )->willReturn(true);
         $client->del(
             Argument::type('string')
         )->willReturn(true)
@@ -81,6 +84,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     public function test_write_without_ttl()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
+        $this->clientLock($client);
         $client->set(
             Argument::type('string'),
             Argument::type('string')
@@ -89,14 +93,6 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
             return true;
         })->shouldBeCalledTimes(1);
-        $client->setnx(
-            Argument::type('string'),
-            Argument::exact(null)
-        )->willReturn(true);
-        $client->expire(
-            Argument::type('string'),
-            Argument::exact(30001)
-        )->willReturn(true);
         $client->del(
             Argument::type('string')
         )->willReturn(true)
@@ -111,30 +107,10 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     public function test_write_when_session_is_locked()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
-        $client->setex(
-            Argument::type('string'),
-            Argument::exact(3600),
-            Argument::type('string')
-        )->will(function ($args) {
-            $this->get($args[0])->willReturn($args[2])->shouldBeCalledTimes(1);
-
-            return true;
-        })->shouldBeCalledTimes(1);
         $client->setnx(
-            Argument::type('string'),
-            Argument::exact(null)
-        )->will(function () {
-            $this->setnx(
-                Argument::type('string'),
-                Argument::exact(null)
-            )->willReturn(false);
-
-            return true;
-        })->shouldBeCalledTimes(4);
-        $client->expire(
-            Argument::type('string'),
-            Argument::exact(451)
-        )->willReturn(true);
+            Argument::exact('session:lock_fail.lock'),
+            Argument::exact(1)
+        )->willReturn(false);
         $client->del(
             Argument::type('string')
         )->willReturn(true)
@@ -142,10 +118,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
         $handler = new SessionHandler($client->reveal(), 'session', 3600, 150000, 450000);
 
-        $this->assertTrue($handler->write('key', 'value'));
-        $this->assertEquals('value', $handler->read('key'));
-
         $this->setExpectedException('Blablacar\Redis\Exception\LockException');
-        $handler->write('key', 'value2');
+        $handler->write('lock_fail', 'value');
     }
 }
