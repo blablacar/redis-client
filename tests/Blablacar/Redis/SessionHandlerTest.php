@@ -22,7 +22,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     protected function clientLock(ObjectProphecy $client)
     {
         $client->setnx(Argument::type('string'), Argument::exact(1))->willReturn(true);
-        $client->expire(Argument::type('string'), Argument::exact(30001))->willReturn(true);
+        $client->expire(Argument::type('string'), Argument::exact(31))->willReturn(true);
         $client->del(Argument::type('string'))->willReturn(true);
     }
 

@@ -135,7 +135,7 @@ class SessionHandler implements \SessionHandlerInterface
         $this->lockKey = $this->getSessionLockKey($sessionId);
         for ($i = 0; $i < $attempts; $i++) {
             if ($this->client->setnx($this->lockKey, 1)) {
-                $this->client->expire($this->lockKey, $this->lockMaxWait / 1000 + 1);
+                $this->client->expire($this->lockKey, $this->lockMaxWait / 1000000 + 1);
                 $this->isLocked = true;
 
                 return true;
