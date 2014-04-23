@@ -111,6 +111,14 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
             Argument::exact('session:lock_fail.lock'),
             Argument::exact(1)
         )->willReturn(false);
+        $client->get(
+            Argument::type('string')
+        )->willReturn(true)
+        ->shouldBeCalledTimes(1);
+        $client->ttl(
+            Argument::type('string')
+        )->willReturn(true)
+        ->shouldBeCalledTimes(1);
         $client->del(
             Argument::type('string')
         )->willReturn(true)
