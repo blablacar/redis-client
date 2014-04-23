@@ -135,12 +135,16 @@ class SessionHandler implements \SessionHandlerInterface
         $this->lockKey = $this->getSessionLockKey($sessionId);
         for ($i = 0; $i < $attempts; $i++) {
             if ($this->client->setnx($this->lockKey, 1)) {
-                $this->client->expire($this->lockKey, $this->lockMaxWait / 1000000 + 1);
-                $this->isLocked = true;
-
-                return true;
+                if ($this->client->expire($this->lockKey, $this->lockMaxWait / 1000000 + 1)) {
+                    return $this->isLocked = true;
+                }
+                $this->client->del($this->lockKey);
             }
             usleep($this->spinLockWait);
+        }
+
+        if ($this->client->get($this->lockKey) && $this->client->ttl($this->lockKey) === -1) {
+            throw new LockException(sprintf("Unable to lock session '%s' (lock ttl not set)", $this->lockKey));
         }
 
         throw new LockException(sprintf(
