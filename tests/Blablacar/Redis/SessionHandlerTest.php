@@ -21,7 +21,7 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
 
     protected function clientLock(ObjectProphecy $client)
     {
-        $client->setnx(Argument::type('string'), Argument::exact(1))->willReturn(true);
+        $client->set(Argument::type('string'), Argument::exact(1), Argument::type('array'))->willReturn(true);
         $client->expire(Argument::type('string'), Argument::exact(31))->willReturn(true);
         $client->del(Argument::type('string'))->willReturn(true);
     }
@@ -107,9 +107,10 @@ class SessionHandlerTest extends \PHPUnit_Framework_TestCase
     public function test_write_when_session_is_locked()
     {
         $client = $this->prophet->prophesize('Blablacar\Redis\Test\Client');
-        $client->setnx(
+        $client->set(
             Argument::exact('session:lock_fail.lock'),
-            Argument::exact(1)
+            Argument::exact(1),
+            Argument::type('array')
         )->willReturn(false);
         $client->get(
             Argument::type('string')

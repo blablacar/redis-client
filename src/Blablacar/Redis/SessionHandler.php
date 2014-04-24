@@ -134,11 +134,8 @@ class SessionHandler implements \SessionHandlerInterface
         $attempts = $this->lockMaxWait / $this->spinLockWait;
         $this->lockKey = $this->getSessionLockKey($sessionId);
         for ($i = 0; $i < $attempts; $i++) {
-            if ($this->client->setnx($this->lockKey, 1)) {
-                if ($this->client->expire($this->lockKey, $this->lockMaxWait / 1000000 + 1)) {
-                    return $this->isLocked = true;
-                }
-                $this->client->del($this->lockKey);
+            if ($this->client->set($this->lockKey, 1, array('nx', 'ex' => $this->lockMaxWait / 1000000 + 1))) {
+                return $this->isLocked = true;
             }
             usleep($this->spinLockWait);
         }
