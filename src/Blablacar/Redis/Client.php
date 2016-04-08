@@ -109,4 +109,21 @@ class Client
 
         return call_user_func_array(array($this->redis, $name), $arguments);
     }
+
+    /**
+     * @param string      $key
+     * @param int         $iterator
+     * @param string|null $pattern
+     * @param int         $count
+     *
+     * @return mixed
+     */
+    public function hscan($key, $iterator, $pattern = null, $count = 0)
+    {
+        if (null === $this->redis) {
+            $this->connect();
+        }
+
+        return $this->redis->hscan($key, $iterator, $pattern, $count);
+    }
 }
