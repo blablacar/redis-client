@@ -118,7 +118,7 @@ class Client
      *
      * @return mixed
      */
-    public function hscan($key, $iterator, $pattern = null, $count = 0)
+    public function hscan($key, &$iterator, $pattern = null, $count = 0)
     {
         if (null === $this->redis) {
             $this->connect();

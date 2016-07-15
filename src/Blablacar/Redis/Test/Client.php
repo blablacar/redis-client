@@ -73,7 +73,7 @@ class Client extends BaseClient
     public function hset() {}
     public function hsetnx() {}
     public function hvals() {}
-    public function hscan($key, $iterator, $pattern = null, $count = 0) {}
+    public function hscan($key, &$iterator, $pattern = null, $count = 0) {}
 
     // Lists
     public function blpop() {}
