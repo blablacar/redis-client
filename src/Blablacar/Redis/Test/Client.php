@@ -41,7 +41,7 @@ class Client extends BaseClient
     public function bitpos() {}
     public function decr() {}
     public function decrby() {}
-    public function get() {}
+    public function get($key) {}
     public function getbit() {}
     public function getrange() {}
     public function getset() {}
@@ -54,7 +54,7 @@ class Client extends BaseClient
     public function psetex() {}
     public function set() {}
     public function setbit() {}
-    public function setex() {}
+    public function setex($key, $ttl, $value) {}
     public function setnx() {}
     public function setrange() {}
     public function strlen() {}
