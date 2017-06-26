@@ -8,6 +8,9 @@ class Client
     protected $port;
     protected $base;
 
+    /**
+     * @var \Redis
+     */
     protected $redis;
 
     /**
@@ -125,5 +128,39 @@ class Client
         }
 
         return $this->redis->hscan($key, $iterator, $pattern, $count);
+    }
+
+    /**
+     * Get the value related to the specified key.
+     *
+     * @param string $key
+     *
+     * @return bool|string
+     */
+    public function get($key)
+    {
+        if (null === $this->redis) {
+            $this->connect();
+        }
+
+        return $this->redis->get($key);
+    }
+
+    /**
+     * Set the string value in argument as value of the key, with a time to live.
+     *
+     * @param   string  $key
+     * @param   int     $ttl
+     * @param   string  $value
+     *
+     * @return  bool    TRUE if the command is successful.
+     */
+    public function setex($key, $ttl, $value)
+    {
+        if (null === $this->redis) {
+            $this->connect();
+        }
+
+        return $this->redis->setex($key, $ttl, $value);
     }
 }
