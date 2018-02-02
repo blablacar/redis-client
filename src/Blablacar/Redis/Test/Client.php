@@ -110,4 +110,7 @@ class Client extends BaseClient
     public function sunion() {}
     public function sunionstore() {}
     public function sscan() {}
+    
+    // Flush
+    public function flushDb() {}  
 }
