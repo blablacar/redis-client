@@ -54,7 +54,11 @@ class Client
         $this->redis = new \Redis();
         $this->redis->connect($this->host, $this->port);
         if (null !== $this->base) {
-            $this->redis->select($this->base);
+            try {
+                $this->redis->select($this->base);
+            } catch (\RedisException $e) {
+                throw new \RedisException(sprintf('%s (%s:%d)', $e->getMessage(), $this->host, $this->port), $e->getCode(), $e);
+            }
         }
     }
 
