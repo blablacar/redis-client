@@ -6,6 +6,7 @@ class Client
 {
     protected $host;
     protected $port;
+    protected $timeout;
     protected $base;
 
     protected $redis;
@@ -13,16 +14,20 @@ class Client
     /**
      * __construct
      *
+     * By default the timeout value is 0 meaning it will use default_socket_timeout.
+     *
      * @param string $host
      * @param int    $port
+     * @param float  $timeout
      * @param int    $base
      *
      * @return void
      */
-    public function __construct($host = '127.0.0.1', $port = 6379, $base = null)
+    public function __construct($host = '127.0.0.1', $port = 6379, $timeout = 0.0, $base = null)
     {
         $this->host = $host;
         $this->port = $port;
+        $this->timeout = $timeout;
         $this->base = $base;
     }
 
@@ -52,7 +57,7 @@ class Client
         }
 
         $this->redis = new \Redis();
-        $this->redis->connect($this->host, $this->port);
+        $this->redis->connect($this->host, $this->port, $this->timeout);
         if (null !== $this->base) {
             try {
                 $this->redis->select($this->base);
