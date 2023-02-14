@@ -8,6 +8,7 @@ class Client
     protected $port;
     protected $timeout;
     protected $base;
+    protected $password;
 
     protected $redis;
 
@@ -20,15 +21,17 @@ class Client
      * @param int    $port
      * @param float  $timeout
      * @param int    $base
+     * @param string $password
      *
      * @return void
      */
-    public function __construct($host = '127.0.0.1', $port = 6379, $timeout = 0.0, $base = null)
+    public function __construct($host = '127.0.0.1', $port = 6379, $timeout = 0.0, $base = null, $password = null)
     {
         $this->host = $host;
         $this->port = $port;
         $this->timeout = $timeout;
         $this->base = $base;
+        $this->password = $password;
     }
 
     /**
@@ -56,8 +59,13 @@ class Client
             return;
         }
 
+        $context = null;
+        if ($this->password !== null) {
+            $context = ['auth' => ['pass' => $this->password]];
+        }
+
         $this->redis = new \Redis();
-        $this->redis->connect($this->host, $this->port, $this->timeout);
+        $this->redis->connect($this->host, $this->port, $this->timeout, null, 0, 0, $context);
         if (null !== $this->base) {
             try {
                 $this->redis->select($this->base);
