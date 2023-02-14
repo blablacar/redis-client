@@ -59,7 +59,7 @@ class Client
             return;
         }
 
-        $context = null;
+        $context = [];
         if ($this->password !== null) {
             $context = ['auth' => ['pass' => $this->password]];
         }
